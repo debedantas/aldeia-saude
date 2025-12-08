@@ -13,7 +13,14 @@ ENV/
 .venv
 
 # FAISS index
-faiss_index/
+backend/rag/faiss_index/
+
+# Database
+*.db
+backend/api/database/aldeia_saude.db
+
+# Uploads
+backend/asr/audio_samples/
 
 # IDE
 .vscode/

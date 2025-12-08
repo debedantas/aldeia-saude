@@ -31,6 +31,66 @@ Web app que usa RAG (Retrieval-Augmented Generation) para transformar relatos de
 - **Frontend**: React (interface web)
 - **Banco**: SQLite
 
+### Estrutura do Projeto
+
+```
+aldeia-saude/
+│
+├── backend/
+│   ├── main.py                          # Aplicação FastAPI principal
+│   ├── requirements.txt                 # Dependências Python
+│   │
+│   ├── api/
+│   │   ├── routes/
+│   │   │   ├── ingest.py               # Endpoints de entrada (texto/áudio)
+│   │   │   ├── cases.py                # Endpoints de consulta de casos
+│   │   │   ├── structure.py            # (Fase 3) Estruturação de dados
+│   │   │   └── explanation.py          # (Fase 4) Geração de explicações
+│   │   │
+│   │   ├── schemas/
+│   │   │   ├── case.py                 # Schemas Pydantic de casos
+│   │   │   ├── structured_case.py      # (Fase 3) Schema de dados estruturados
+│   │   │   └── explanation.py          # (Fase 4) Schema de explicações
+│   │   │
+│   │   ├── services/
+│   │   │   ├── asr_service.py          # Transcrição de áudio (Gemini)
+│   │   │   ├── rag_service.py          # (Fase 3) Serviço RAG
+│   │   │   ├── structure_service.py    # (Fase 3) Estruturação com LLM
+│   │   │   └── explanation_service.py  # (Fase 4) Geração de explicações
+│   │   │
+│   │   ├── database/
+│   │   │   ├── connection.py           # Conexão e operações SQLite
+│   │   │   └── aldeia_saude.db         # Banco de dados (gerado)
+│   │   │
+│   │   └── utils/
+│   │       ├── text_cleaning.py        # Limpeza de texto
+│   │       └── validation.py           # Validações
+│   │
+│   ├── rag/
+│   │   ├── rag_pipeline.py             # Pipeline RAG completo
+│   │   └── faiss_index/                # Índice vetorial (gerado)
+│   │
+│   ├── asr/
+│   │   ├── transcriber.py              # Classe de transcrição (legado)
+│   │   └── audio_samples/              # Áudios enviados (gerado)
+│   │
+│   └── prompts/
+│       ├── asr_prompt.txt              # Prompt de transcrição com vocabulário Yanomami
+│       ├── nlu_prompt.txt              # (Fase 3) Prompt de extração estruturada
+│       └── explanation_prompt.txt      # (Fase 4) Prompt de explicação médica
+│
+├── frontend/                            # (Fase 5) Interface React
+│   └── README.md
+│
+├── data/
+│   └── Saude_Yanomami.pdf              # Documento base de conhecimento
+│
+├── .env                                 # Variáveis de ambiente (não versionado)
+├── .env.example                         # Template de configuração
+├── .gitignore
+└── README.md
+```
+
 ## Roadmap de Implementação
 
 ### Fase 1 — RAG e Processamento de Base de Conhecimento
@@ -147,20 +207,65 @@ medical_explanations (
 ### Pré-requisitos
 
 - Python 3.8+
-- Node.js 16+ (para o frontend)
-- PostgreSQL
+- Node.js 16+ (para o frontend - Fase 5)
 
-### Backend (MVP atual - linha de comando)
+### 1. Testar RAG (Fase 1) - Linha de comando
 
 ```bash
+# Navegar para o backend
+cd backend
+
 # Instalar dependências
 pip install -r requirements.txt
 
 # Configurar .env com GOOGLE_API_KEY
-cp .env.example .env
+cp ../.env.example ../.env
 
-# Adicionar arquivo Saude_Yanomami.pdf
+# Adicionar arquivo Saude_Yanomami.pdf na pasta data/
+# Copiar: data/Saude_Yanomami.pdf
 
-# Executar
-python main.py
+# Executar teste do RAG
+python rag/rag_pipeline.py
 ```
+
+### 2. API FastAPI (Fase 2) - Endpoints de entrada de dados
+
+```bash
+# Navegar para o backend (se ainda não estiver)
+cd backend
+
+# Instalar dependências (se ainda não instalou)
+pip install -r requirements.txt
+
+# Configurar .env (se ainda não configurou)
+cp ../.env.example ../.env
+
+# Executar servidor FastAPI
+python main.py
+# OU
+uvicorn main:app --reload
+
+# Servidor disponível em: http://localhost:8000
+# Documentação Swagger: http://localhost:8000/docs
+```
+
+#### Testando os endpoints no Swagger
+
+1. Acesse `http://localhost:8000/docs`
+2. Teste o endpoint `POST /api/relatos/texto`:
+   - Clique em "Try it out"
+   - Insira um relato de exemplo:
+     ```json
+     {
+       "relato": "Estou com dor de cabeça forte há 3 dias e febre à noite"
+     }
+     ```
+   - Clique em "Execute"
+
+3. Teste o endpoint `POST /api/relatos/audio`:
+   - Clique em "Try it out"
+   - Faça upload de um arquivo de áudio (mp3, wav, m4a)
+   - Clique em "Execute"
+   - O áudio será transcrito automaticamente usando Gemini
+
+4. Liste os relatos com `GET /api/relatos`
