@@ -101,3 +101,29 @@ class CaseRepository:
                 session.delete(case)
                 return True
             return False
+
+    def update_status(
+        self,
+        case_id: int,
+        status: str,
+        error_message: Optional[str] = None
+    ) -> bool:
+        """
+        Atualiza o status de um caso
+
+        Args:
+            case_id: ID do caso
+            status: Novo status (pendente, processando, completo, erro)
+            error_message: Mensagem de erro (opcional)
+
+        Returns:
+            True se atualizado com sucesso, False se não encontrado
+        """
+        with self._get_session() as session:
+            case = session.query(Case).filter(Case.id == case_id).first()
+            if case:
+                case.status = status
+                if error_message:
+                    case.error_message = error_message
+                return True
+            return False

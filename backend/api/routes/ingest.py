@@ -1,12 +1,13 @@
 """
 Rotas para ingestão de dados (texto e áudio)
 """
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, File, UploadFile, HTTPException, BackgroundTasks
 from pathlib import Path
 
 from ..schemas.case import RelatoTextoRequest, CaseResponse
 from ..repositories import CaseRepository
 from ..services.asr_service import ASRService
+from ..tasks import structure_case_task
 
 router = APIRouter(prefix="/api/relatos", tags=["Relatos"])
 
@@ -16,7 +17,7 @@ AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.post("/texto", response_model=CaseResponse)
-def criar_relato_texto(request: RelatoTextoRequest):
+async def criar_relato_texto(request: RelatoTextoRequest, background_tasks: BackgroundTasks):
     """
     Endpoint para criar um relato a partir de texto
 
@@ -32,16 +33,21 @@ def criar_relato_texto(request: RelatoTextoRequest):
             tipo_entrada="texto"
         )
 
+        # Disparar estruturação em background
+        background_tasks.add_task(structure_case_task, case_id)
+
         # Buscar caso criado
         caso = repository.find_by_id(case_id)
 
         return CaseResponse(
+            case_id=caso["id"],
+            status=caso["status"],
             id=caso["id"],
             relato_original=caso["relato_original"],
             tipo_entrada=caso["tipo_entrada"],
             audio_path=caso["audio_path"],
             created_at=caso["created_at"],
-            message="Relato de texto registrado com sucesso"
+            message="Relato registrado. Estruturação em andamento."
         )
 
     except Exception as e:
@@ -51,6 +57,7 @@ def criar_relato_texto(request: RelatoTextoRequest):
 
 @router.post("/audio", response_model=CaseResponse)
 async def criar_relato_audio(
+    background_tasks: BackgroundTasks,
     audio: UploadFile = File(...,
                              description="Arquivo de áudio (mp3, wav, m4a, etc)")
 ):
@@ -63,6 +70,7 @@ async def criar_relato_audio(
     1. Salvo localmente
     2. Transcrito usando Google Gemini com prompt enriquecido para reconhecer vocabulário Yanomami
     3. A transcrição será salva no banco junto com o caminho do áudio
+    4. Estruturação dos dados será processada em background
     """
     audio_path = None
     try:
@@ -88,16 +96,21 @@ async def criar_relato_audio(
             audio_path=str(audio_path)
         )
 
+        # Disparar estruturação em background
+        background_tasks.add_task(structure_case_task, case_id)
+
         # Buscar caso criado
         caso = repository.find_by_id(case_id)
 
         return CaseResponse(
+            case_id=caso["id"],
+            status=caso["status"],
             id=caso["id"],
             relato_original=caso["relato_original"],
             tipo_entrada=caso["tipo_entrada"],
             audio_path=caso["audio_path"],
             created_at=caso["created_at"],
-            message="Áudio transcrito e registrado com sucesso"
+            message="Áudio transcrito e registrado. Estruturação em andamento."
         )
 
     except Exception as e:

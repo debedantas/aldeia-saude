@@ -2,6 +2,56 @@
 
 Web app que usa RAG (Retrieval-Augmented Generation) para transformar relatos de saúde (áudio ou texto) com vocabulário indígena Yanomami em dados estruturados, gerando explicações médicas contextualizadas.
 
+## Visão Geral do MVP
+
+### Fluxo Principal
+
+1. **Ingestão de Dados** (`POST /api/relatos/texto` ou `/audio`)
+
+   - Recebe relato em texto livre ou áudio
+   - Áudio é transcrito usando Google Gemini com prompt enriquecido para vocabulário Yanomami
+   - Relato original é salvo imediatamente no banco (SQLite com SQLAlchemy)
+   - Sistema retorna rapidamente o `case_id`
+
+2. **Estruturação de Dados** (Próxima fase - em background)
+
+   - LLM processa o relato e extrai dados estruturados:
+     - **Dados do Paciente**: nome, idade (texto descritivo), sexo (M/F/Indefinido)
+     - **Sintomas**: descrição em português, termos indígenas, categoria
+     - **Dados Clínicos**: duração dos sintomas, fator desencadeante, temperatura (°C), pressão arterial
+   - RAG busca termos Yanomami relacionados na base de conhecimento (FAISS)
+   - Dados estruturados são salvos vinculados ao caso
+
+3. **Geração de Explicações Médicas** (Fase futura)
+
+   - Com base nos dados estruturados, LLM gera explicação contextualizada
+   - Inclui nível de gravidade e recomendações básicas
+
+4. **Visualização** (Frontend React - Fase 5)
+   - Dashboard com casos recentes e estatísticas
+   - Detalhes do caso: relato original + dados estruturados + explicação
+
+### Arquitetura Técnica Atual
+
+- **Backend**: FastAPI com SQLAlchemy ORM
+- **Banco de Dados**: SQLite com 3 tabelas principais:
+  - `cases`: Relatos originais (áudio/texto)
+  - `structured_data`: Dados extraídos via LLM + RAG
+  - `medical_explanations`: Explicações geradas
+- **Repository Pattern**: Camada de acesso a dados desacoplada
+- **LLM**: Google Gemini (transcrição e estruturação)
+- **RAG**: LangChain + FAISS + HuggingFace embeddings
+- **Documento Base**: `Saude_Yanomami.pdf` indexado com vocabulário indígena
+
+### Status Atual
+
+✅ **Fase 1**: RAG implementado (indexação do PDF Yanomami)  
+✅ **Fase 2**: Ingestão de texto e áudio com transcrição  
+✅ **Infraestrutura**: SQLAlchemy + Repository Pattern  
+🔴 **Fase 3**: Estruturação de dados (próxima)  
+🔴 **Fase 4**: Explicações médicas  
+🔴 **Fase 5**: Interface web
+
 ## Principais objetivos
 
 - Processar relatos livres de saúde e extrair informações estruturadas utilizando Inteligência Artificial.
@@ -125,6 +175,8 @@ aldeia-saude/
 ```json
 {
   "relato_original": "string",
+  "paciente_nome": "string ou null",
+  "paciente_sexo": "M | F | Indefinido",
   "sintomas_identificados_ptbr": ["sintoma1", "sintoma2"],
   "correspondencia_indigena": [
     {
@@ -135,7 +187,10 @@ aldeia-saude/
   ],
   "categoria_sintoma": "categoria",
   "idade_paciente": "string ou null",
-  "duracao_sintomas": "string ou null"
+  "duracao_sintomas": "string ou null",
+  "fator_desencadeante": "string ou null",
+  "temperatura_graus": "float ou null",
+  "pressao_arterial": "string ou null"
 }
 ```
 
@@ -185,11 +240,20 @@ cases (
 structured_data (
   id,
   case_id,
+  -- Dados do paciente
+  paciente_nome,
+  paciente_sexo (M/F/Indefinido),
+  -- Sintomas
   sintomas_ptbr,
   termos_indigenas,
   categoria_sintoma,
-  significado_aproximado,
-  contexto_cultural_saude
+  -- Dados clínicos
+  idade_paciente,
+  duracao_sintomas,
+  fator_desencadeante,
+  temperatura_graus,
+  pressao_arterial,
+  created_at
 )
 
 -- Tabela de explicações médicas
@@ -253,6 +317,7 @@ uvicorn main:app --reload
 
 1. Acesse `http://localhost:8000/docs`
 2. Teste o endpoint `POST /api/relatos/texto`:
+
    - Clique em "Try it out"
    - Insira um relato de exemplo:
      ```json
@@ -263,6 +328,7 @@ uvicorn main:app --reload
    - Clique em "Execute"
 
 3. Teste o endpoint `POST /api/relatos/audio`:
+
    - Clique em "Try it out"
    - Faça upload de um arquivo de áudio (mp3, wav, m4a)
    - Clique em "Execute"

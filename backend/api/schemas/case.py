@@ -19,6 +19,8 @@ class RelatoTextoRequest(BaseModel):
 
 class CaseResponse(BaseModel):
     """Schema de resposta para um caso criado"""
+    case_id: int
+    status: str
     id: int
     relato_original: str
     tipo_entrada: str

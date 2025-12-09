@@ -23,20 +23,30 @@ class StructuredDataRepository:
     def create(
         self,
         case_id: int,
-        sintomas_ptbr: Optional[str] = None,
-        termos_indigenas: Optional[str] = None,
+        paciente_nome: Optional[str] = None,
+        paciente_sexo: Optional[str] = None,
+        sintomas_identificados_ptbr: Optional[str] = None,
+        correspondencia_indigena: Optional[str] = None,
         categoria_sintoma: Optional[str] = None,
         idade_paciente: Optional[str] = None,
-        duracao_sintomas: Optional[str] = None
+        duracao_sintomas: Optional[str] = None,
+        fator_desencadeante: Optional[str] = None,
+        temperatura_graus: Optional[float] = None,
+        pressao_arterial: Optional[str] = None
     ) -> int:
         """Cria um novo registro de dados estruturados"""
         data = StructuredData(
             case_id=case_id,
-            sintomas_ptbr=sintomas_ptbr,
-            termos_indigenas=termos_indigenas,
+            paciente_nome=paciente_nome,
+            paciente_sexo=paciente_sexo,
+            sintomas_identificados_ptbr=sintomas_identificados_ptbr,
+            correspondencia_indigena=correspondencia_indigena,
             categoria_sintoma=categoria_sintoma,
             idade_paciente=idade_paciente,
-            duracao_sintomas=duracao_sintomas
+            duracao_sintomas=duracao_sintomas,
+            fator_desencadeante=fator_desencadeante,
+            temperatura_graus=temperatura_graus,
+            pressao_arterial=pressao_arterial
         )
 
         with self._get_session() as session:
