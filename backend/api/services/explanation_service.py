@@ -123,6 +123,14 @@ Pressão arterial: {structured_data.get('pressao_arterial') or 'Não aferida'}
             # Parse JSON
             resultado = json.loads(resposta_limpa)
 
+            # Garantir que narrativa_clinica é string
+            narrativa = resultado.get("narrativa_clinica")
+            if isinstance(narrativa, dict):
+                # Se vier como dict, serializar para string JSON
+                narrativa_str = json.dumps(narrativa, ensure_ascii=False)
+            else:
+                narrativa_str = str(narrativa) if narrativa else None
+
             # Serializar recomendações como JSON string
             recomendacoes_json = json.dumps(
                 resultado.get("recomendacoes", []),
@@ -130,7 +138,7 @@ Pressão arterial: {structured_data.get('pressao_arterial') or 'Não aferida'}
             )
 
             return {
-                "narrativa_clinica": resultado.get("narrativa_clinica"),
+                "narrativa_clinica": narrativa_str,
                 "gravidade_sugerida": resultado.get("gravidade_sugerida"),
                 "justificativa_gravidade": resultado.get("justificativa_gravidade"),
                 "recomendacoes": recomendacoes_json

@@ -15,10 +15,15 @@ CONTEXTO CLÍNICO ADICIONAL:
 INSTRUÇÕES:
 
 1. NARRATIVA CLÍNICA (Formato SOAP):
-   - Subjetivo: Resuma o relato original respeitando os termos culturais Yanomami
-   - Objetivo: Liste os sintomas normalizados e dados clínicos objetivos
-   - Avaliação: Correlacione os termos indígenas com conceitos médicos ocidentais, explicando a possível condição
-   - Plano: Indique as próximas etapas de investigação ou manejo
+   Escreva um texto CONTÍNUO (NÃO em formato de objeto JSON) seguindo a estrutura:
+   
+   SUBJETIVO: [Resuma o relato original respeitando os termos culturais Yanomami]
+   
+   OBJETIVO: [Liste os sintomas normalizados e dados clínicos objetivos]
+   
+   AVALIAÇÃO: [Correlacione os termos indígenas com conceitos médicos ocidentais, explicando a possível condição]
+   
+   PLANO: [Indique as próximas etapas de investigação ou manejo]
 
 2. GRAVIDADE SUGERIDA (classifique como Baixa, Média ou Alta):
    REGRAS DE CLASSIFICAÇÃO:
@@ -34,7 +39,7 @@ INSTRUÇÕES:
 IMPORTANTE: Retorne APENAS um JSON válido (sem markdown, sem ```json) com este schema:
 
 {{
-  "narrativa_clinica": "Texto em formato SOAP completo",
+  "narrativa_clinica": "SUBJETIVO: [texto aqui]\n\nOBJETIVO: [texto aqui]\n\nAVALIAÇÃO: [texto aqui]\n\nPLANO: [texto aqui]",
   "gravidade_sugerida": "Baixa" ou "Média" ou "Alta",
   "justificativa_gravidade": "Breve justificativa da classificação baseada nas regras",
   "recomendacoes": ["ação 1", "ação 2", "ação 3"]
