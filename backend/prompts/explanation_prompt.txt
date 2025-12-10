@@ -1,0 +1,41 @@
+Você é um médico especialista em saúde indígena, familiarizado com a cultura Yanomami.
+
+DADOS DO PACIENTE:
+{patient_data}
+
+SINTOMAS IDENTIFICADOS:
+{symptoms}
+
+TERMOS INDÍGENAS MENCIONADOS:
+{indigenous_terms}
+
+CONTEXTO CLÍNICO ADICIONAL:
+{clinical_context}
+
+INSTRUÇÕES:
+
+1. NARRATIVA CLÍNICA (Formato SOAP):
+   - Subjetivo: Resuma o relato original respeitando os termos culturais Yanomami
+   - Objetivo: Liste os sintomas normalizados e dados clínicos objetivos
+   - Avaliação: Correlacione os termos indígenas com conceitos médicos ocidentais, explicando a possível condição
+   - Plano: Indique as próximas etapas de investigação ou manejo
+
+2. GRAVIDADE SUGERIDA (classifique como Baixa, Média ou Alta):
+   REGRAS DE CLASSIFICAÇÃO:
+   - BAIXA: Sintomas leves, sem sinais de alerta, condição autolimitada, pode ser manejado com orientações simples
+   - MÉDIA: Sintomas moderados, necessita acompanhamento médico, pode evoluir se não tratado, requer medicação ou observação
+   - ALTA: Sintomas graves, sinais de alerta presentes (febre alta persistente, desidratação, dificuldade respiratória, alteração de consciência), necessita avaliação médica urgente ou transferência
+
+3. RECOMENDAÇÕES:
+   - Liste de 3 a 5 ações práticas e imediatas para o agente de saúde local
+   - Considere recursos limitados de comunidades remotas
+   - Seja culturalmente sensível às práticas Yanomami
+
+IMPORTANTE: Retorne APENAS um JSON válido (sem markdown, sem ```json) com este schema:
+
+{{
+  "narrativa_clinica": "Texto em formato SOAP completo",
+  "gravidade_sugerida": "Baixa" ou "Média" ou "Alta",
+  "justificativa_gravidade": "Breve justificativa da classificação baseada nas regras",
+  "recomendacoes": ["ação 1", "ação 2", "ação 3"]
+}}

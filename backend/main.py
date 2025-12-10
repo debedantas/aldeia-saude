@@ -2,7 +2,7 @@
 AldeIA Saúde - Backend API
 FastAPI Application
 """
-from api.routes import ingest, cases
+from api.routes import ingest, cases, explanation
 from api.database.session import init_db
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
@@ -42,6 +42,7 @@ def startup_event():
 # Registrar rotas
 app.include_router(ingest.router)
 app.include_router(cases.router)
+app.include_router(explanation.router)
 
 
 @app.get("/")

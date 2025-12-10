@@ -23,14 +23,18 @@ class MedicalExplanationRepository:
     def create(
         self,
         case_id: int,
-        explicacao: Optional[str] = None,
-        gravidade_sugerida: Optional[str] = None
+        narrativa_clinica: str,
+        gravidade_sugerida: str,
+        justificativa_gravidade: str,
+        recomendacoes: str
     ) -> int:
         """Cria uma nova explicação médica"""
         explanation = MedicalExplanation(
             case_id=case_id,
-            explicacao=explicacao,
-            gravidade_sugerida=gravidade_sugerida
+            narrativa_clinica=narrativa_clinica,
+            gravidade_sugerida=gravidade_sugerida,
+            justificativa_gravidade=justificativa_gravidade,
+            recomendacoes=recomendacoes
         )
 
         with self._get_session() as session:

@@ -109,8 +109,10 @@ class MedicalExplanation(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     case_id = Column(Integer, ForeignKey("cases.id"), nullable=False)
-    explicacao = Column(Text, nullable=True)
+    narrativa_clinica = Column(Text, nullable=True)
     gravidade_sugerida = Column(String(50), nullable=True)
+    justificativa_gravidade = Column(Text, nullable=True)
+    recomendacoes = Column(Text, nullable=True)  # JSON array
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relacionamento
@@ -121,7 +123,9 @@ class MedicalExplanation(Base):
         return {
             "id": self.id,
             "case_id": self.case_id,
-            "explicacao": self.explicacao,
+            "narrativa_clinica": self.narrativa_clinica,
             "gravidade_sugerida": self.gravidade_sugerida,
+            "justificativa_gravidade": self.justificativa_gravidade,
+            "recomendacoes": self.recomendacoes,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
