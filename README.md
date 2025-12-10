@@ -2,56 +2,6 @@
 
 Web app que usa RAG (Retrieval-Augmented Generation) para transformar relatos de saúde (áudio ou texto) com vocabulário indígena Yanomami em dados estruturados, gerando explicações médicas contextualizadas.
 
-## Visão Geral do MVP
-
-### Fluxo Principal
-
-1. **Ingestão de Dados** (`POST /api/relatos/texto` ou `/audio`)
-
-   - Recebe relato em texto livre ou áudio
-   - Áudio é transcrito usando Google Gemini com prompt enriquecido para vocabulário Yanomami
-   - Relato original é salvo imediatamente no banco (SQLite com SQLAlchemy)
-   - Sistema retorna rapidamente o `case_id`
-
-2. **Estruturação de Dados** (Próxima fase - em background)
-
-   - LLM processa o relato e extrai dados estruturados:
-     - **Dados do Paciente**: nome, idade (texto descritivo), sexo (M/F/Indefinido)
-     - **Sintomas**: descrição em português, termos indígenas, categoria
-     - **Dados Clínicos**: duração dos sintomas, fator desencadeante, temperatura (°C), pressão arterial
-   - RAG busca termos Yanomami relacionados na base de conhecimento (FAISS)
-   - Dados estruturados são salvos vinculados ao caso
-
-3. **Geração de Explicações Médicas** (Fase futura)
-
-   - Com base nos dados estruturados, LLM gera explicação contextualizada
-   - Inclui nível de gravidade e recomendações básicas
-
-4. **Visualização** (Frontend React - Fase 5)
-   - Dashboard com casos recentes e estatísticas
-   - Detalhes do caso: relato original + dados estruturados + explicação
-
-### Arquitetura Técnica Atual
-
-- **Backend**: FastAPI com SQLAlchemy ORM
-- **Banco de Dados**: SQLite com 3 tabelas principais:
-  - `cases`: Relatos originais (áudio/texto)
-  - `structured_data`: Dados extraídos via LLM + RAG
-  - `medical_explanations`: Explicações geradas
-- **Repository Pattern**: Camada de acesso a dados desacoplada
-- **LLM**: Google Gemini (transcrição e estruturação)
-- **RAG**: LangChain + FAISS + HuggingFace embeddings
-- **Documento Base**: `Saude_Yanomami.pdf` indexado com vocabulário indígena
-
-### Status Atual
-
-✅ **Fase 1**: RAG implementado (indexação do PDF Yanomami)  
-✅ **Fase 2**: Ingestão de texto e áudio com transcrição  
-✅ **Infraestrutura**: SQLAlchemy + Repository Pattern  
-🔴 **Fase 3**: Estruturação de dados (próxima)  
-🔴 **Fase 4**: Explicações médicas  
-🔴 **Fase 5**: Interface web
-
 ## Principais objetivos
 
 - Processar relatos livres de saúde e extrair informações estruturadas utilizando Inteligência Artificial.
@@ -64,22 +14,60 @@ Web app que usa RAG (Retrieval-Augmented Generation) para transformar relatos de
 - Reduz a dependência de registros médicos manuais e formulários, atacando erros, incompletudes e perda de informação em contextos remotos onde o AIS (Agente Indígena de Saúde) está sobrecarregado.
 - Aproveita relatos livres (orais ou textuais) e aplica IA para transcrever e estruturar automaticamente os dados de saúde.
 - Preserva e valoriza o vocabulário indígena Yanomami, mapeando termos nativos relacionados à saúde.
-- Acelera o processo de registro e organização dos casos, eliminando retrabalho e reduzindo não conformidades comuns em registros convencionais.
 - Fornece explicações médicas contextualizadas baseadas nos sintomas identificados.
 - Transforma relatos dispersos em informação útil e centrada na comunidade, produzindo análises que refletem a realidade da população indígena.
 - Facilita o acompanhamento de casos através de dashboard visual, para fortalecer a visão do AIS.
 
-## Arquitetura do Sistema
+## Visão Geral do MVP
 
-### Tecnologias Utilizadas
+### Fluxo Principal
 
-- **Backend**: Python com FastAPI
-- **LLM**: Google Gemini (transcrição de áudio e estruturação dos dados)
-- **RAG**: LangChain + FAISS (indexação do vocabulário Yanomami)
-- **Embeddings**: HuggingFace (sentence-transformers)
-- **PDF Parser**: PyPDF
-- **Frontend**: React (interface web)
-- **Banco**: SQLite
+1. **Ingestão de Dados** (`POST /api/relatos/texto` ou `/audio`)
+
+   - Recebe relato em texto livre ou áudio
+   - Áudio é transcrito usando Google Gemini com prompt enriquecido para vocabulário Yanomami
+   - Relato original é salvo imediatamente no banco (SQLite com SQLAlchemy)
+   - Sistema retorna `case_id` e `status: "pendente"`
+   - **Background Task** inicia estruturação automaticamente
+
+2. **Estruturação de Dados** (Background - Assíncrono)
+
+   - Status atualizado para `"processando"`
+   - LLM (Gemini 2.5 Flash) + RAG processam o relato e extraem:
+     - **Dados do Paciente**: nome, idade (texto descritivo), sexo (M/F/Indefinido)
+     - **Sintomas Identificados**: array de sintomas normalizados (ex: "quentura" → "Febre")
+     - **Correspondência Indígena**: array de objetos `{termo_nativo, significado_aproximado, contexto_cultural_saude}`
+     - **Categoria de Sintoma**: classificação geral (respiratório, febril, gastrointestinal, etc)
+     - **Dados Clínicos**: duração, fator desencadeante, temperatura (°C), pressão arterial
+   - RAG busca termos Yanomami em `saude_simplificado.pdf` usando FAISS
+   - Dados estruturados salvos em `structured_data` table
+   - Status atualizado para `"completo"` ou `"erro"`
+
+3. **Geração de Explicações Médicas** (`POST /api/relatos/{id}/explicar`)
+
+   - Busca dados estruturados do caso
+   - Prompt contextualizado com cultura Yanomami gera:
+     - **Narrativa Clínica**: Texto em formato SOAP (Subjetivo, Objetivo, Avaliação, Plano)
+     - **Gravidade Sugerida**: Baixa/Média/Alta com regras claras de classificação
+     - **Justificativa da Gravidade**: Explicação da classificação
+     - **Recomendações**: Array de 3-5 ações práticas para agentes de saúde locais
+   - Explicação salva em `medical_explanations` table vinculada ao caso
+
+4. **Consulta de Casos**
+   - `GET /api/relatos`: Lista todos os casos com status
+   - `GET /api/relatos/{id}`: Detalhes do caso + dados estruturados (se `status: "completo"`)
+
+### Arquitetura Técnica
+
+- **Backend**: Python com FastAPI e SQLAlchemy
+- **Banco de Dados**: SQLite com 3 tabelas principais:
+  - `cases`: Relatos originais + status (pendente/processando/completo/erro)
+  - `structured_data`: Dados extraídos (sintomas normalizados, termos indígenas, dados clínicos)
+  - `medical_explanations`: Narrativas SOAP, gravidade, recomendações
+- **LLM**: Google Gemini 2.5 Flash (transcrição, estruturação e explicações)
+- **RAG**: LangChain + FAISS + HuggingFace embeddings (paraphrase-multilingual-MiniLM-L12-v2)
+- **Documento Base**: `saude_simplificado.pdf` na pasta `data/`
+- **Índice Vetorial**: Criado automaticamente em `backend/rag/faiss_index/` na primeira execução
 
 ### Estrutura do Projeto
 
@@ -94,51 +82,178 @@ aldeia-saude/
 │   │   ├── routes/
 │   │   │   ├── ingest.py               # Endpoints de entrada (texto/áudio)
 │   │   │   ├── cases.py                # Endpoints de consulta de casos
-│   │   │   ├── structure.py            # (Fase 3) Estruturação de dados
-│   │   │   └── explanation.py          # (Fase 4) Geração de explicações
+│   │   │   └── explanation.py          # Geração de explicações médicas
 │   │   │
 │   │   ├── schemas/
-│   │   │   ├── case.py                 # Schemas Pydantic de casos
-│   │   │   ├── structured_case.py      # (Fase 3) Schema de dados estruturados
-│   │   │   └── explanation.py          # (Fase 4) Schema de explicações
+│   │   │   └── case.py                 # Schemas Pydantic (CaseResponse)
 │   │   │
 │   │   ├── services/
 │   │   │   ├── asr_service.py          # Transcrição de áudio (Gemini)
-│   │   │   ├── rag_service.py          # (Fase 3) Serviço RAG
-│   │   │   ├── structure_service.py    # (Fase 3) Estruturação com LLM
-│   │   │   └── explanation_service.py  # (Fase 4) Geração de explicações
+│   │   │   ├── structure_service.py    # Estruturação com LLM + RAG
+│   │   │   └── explanation_service.py  # Geração de explicações
+│   │   │
+│   │   ├── repositories/
+│   │   │   ├── case_repository.py              # CRUD de casos
+│   │   │   ├── structured_data_repository.py   # CRUD de dados estruturados
+│   │   │   └── medical_explanation_repository.py # CRUD de explicações
+│   │   │
+│   │   ├── tasks/
+│   │   │   └── structure_task.py       # Background task de estruturação
 │   │   │
 │   │   ├── database/
-│   │   │   ├── connection.py           # Conexão e operações SQLite
-│   │   │   └── aldeia_saude.db         # Banco de dados (gerado)
+│   │   │   ├── models.py               # SQLAlchemy models (Case, StructuredData, MedicalExplanation)
+│   │   │   ├── session.py              # Gerenciamento de sessões
+│   │   │   └── aldeia_saude.db         # Banco de dados
 │   │   │
 │   │   └── utils/
-│   │       ├── text_cleaning.py        # Limpeza de texto
-│   │       └── validation.py           # Validações
 │   │
 │   ├── rag/
-│   │   ├── rag_pipeline.py             # Pipeline RAG completo
-│   │   └── faiss_index/                # Índice vetorial (gerado)
+│   │   └── faiss_index/                # Índice vetorial (gerado automaticamente)
 │   │
 │   ├── asr/
-│   │   ├── transcriber.py              # Classe de transcrição (legado)
-│   │   └── audio_samples/              # Áudios enviados (gerado)
+│   │   └── audio_samples/              # Áudios enviados
 │   │
 │   └── prompts/
 │       ├── asr_prompt.txt              # Prompt de transcrição com vocabulário Yanomami
-│       ├── nlu_prompt.txt              # (Fase 3) Prompt de extração estruturada
-│       └── explanation_prompt.txt      # (Fase 4) Prompt de explicação médica
+│       ├── structure_prompt.txt        # Prompt de extração estruturada + normalização
+│       └── explanation_prompt.txt      # Prompt de narrativa SOAP + gravidade
 │
-├── frontend/                            # (Fase 5) Interface React
+├── frontend/                            # Interface React + Vite + TypeScript
+│   ├── src/
+│   │   ├── components/                 # Componentes reutilizáveis
+│   │   ├── pages/                      # Páginas da aplicação
+│   │   ├── services/                   # Chamadas à API
+│   │   ├── context/                    # Context API (estado global)
+│   │   ├── App.tsx                     # Componente principal
+│   │   ├── main.tsx                    # Entry point
+│   │   ├── index.css                   # Estilos globais
+│   │   └── colors.css                  # Paleta de cores
+│   │
+│   ├── public/                         # Arquivos estáticos
+│   ├── index.html                      # HTML base
+│   ├── package.json                    # Dependências Node
+│   ├── vite.config.ts                  # Configuração Vite
+│   ├── tailwind.config.js              # Configuração Tailwind CSS
+│   ├── tsconfig.json                   # Configuração TypeScript
 │   └── README.md
 │
 ├── data/
-│   └── Saude_Yanomami.pdf              # Documento base de conhecimento
+│   └── saude_simplificado.pdf          # Documento base de conhecimento
 │
-├── .env                                 # Variáveis de ambiente (não versionado)
-├── .env.example                         # Template de configuração
+├── .env                                 # Variáveis de ambiente
 ├── .gitignore
 └── README.md
+```
+
+## Endpoints Disponíveis
+
+### Ingestão de Dados
+
+- `POST /api/relatos/texto` - Criar relato a partir de texto
+- `POST /api/relatos/audio` - Criar relato a partir de áudio (transcrito automaticamente)
+
+### Consulta de Casos
+
+- `GET /api/relatos` - Listar todos os casos com status
+- `GET /api/relatos/{case_id}` - Buscar caso específico + dados estruturados
+
+### Explicações Médicas
+
+- `POST /api/relatos/{case_id}/explicar` - Gerar narrativa SOAP + gravidade + recomendações
+
+## Configuração e Execução
+
+### Pré-requisitos
+
+- Python 3.11+
+- Google API Key (Gemini)
+
+### Como executar
+
+Clone o repositório
+
+```bash
+git clone <repo-url>
+cd aldeia-saude
+```
+
+#### Backend
+
+1. Configure as variáveis de ambiente num .env
+
+2. Instale as dependências
+
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+3. Adicione o PDF de conhecimento
+
+Coloque saude_simplificado.pdf na pasta data/
+
+4. Execute o servidor
+
+```bash
+cd backend
+uvicorn main:app --reload
+```
+
+O servidor estará disponível em `http://localhost:8000`  
+Documentação interativa: `http://localhost:8000/docs`
+
+#### Frontend
+
+1. Instale as dependências
+
+```bash
+cd frontend
+npm install
+```
+
+2. Execute o servidor
+
+```bash
+cd frontend
+npm run dev
+```
+
+O servidor estará disponível em `http://localhost:3000`
+
+3. Credenciais de Demo
+
+- **Email**: `admin@aldeia.com`
+- **Senha**: `password123`
+
+### Primeiro Uso
+
+Na primeira execução, o sistema criará automaticamente:
+
+- Banco de dados SQLite em `backend/api/database/aldeia_saude.db`
+- Índice FAISS em `backend/rag/faiss_index/` (processamento do PDF)
+
+## Fluxo de Uso
+
+1. **Criar um relato**
+
+```bash
+POST /api/relatos/texto
+{
+  "relato": "O paciente está com ya wakë tukema e tosse há 3 dias"
+}
+```
+
+2. **Verificar status do processamento**
+
+```bash
+GET /api/relatos/{case_id}
+# Aguardar status: "completo"
+```
+
+3. **Gerar explicação médica**
+
+```bash
+POST /api/relatos/{case_id}/explicar
 ```
 
 ## Roadmap de Implementação
@@ -146,8 +261,8 @@ aldeia-saude/
 ### Fase 1 — RAG e Processamento de Base de Conhecimento
 
 - Criar PDF com vocabulário indígena + sintoma biomédico
-- Carregar PDF
-- Criar pipeline de limpeza de texto
+- Carregar PDF e criar índice FAISS automaticamente
+- Pipeline de limpeza de texto
 - Implementar chunking e embeddings (HuggingFace)
 - Indexar conhecimento no FAISS
 - Configurar retrieval semântico
@@ -174,7 +289,6 @@ aldeia-saude/
 
 ```json
 {
-  "relato_original": "string",
   "paciente_nome": "string ou null",
   "paciente_sexo": "M | F | Indefinido",
   "sintomas_identificados_ptbr": ["sintoma1", "sintoma2"],
@@ -198,24 +312,28 @@ aldeia-saude/
 
 - Criar prompt para explicação médica baseada nos sintomas estruturados
 - Usar Gemini para gerar explicação contextualizada
+- Gerar registro médico no método SOAP:
+  - S (Subjetivo): O que o paciente relata (queixas, histórico).
+  - O (Objetivo): Dados do profissional (exame físico, sinais vitais, exames).
+  - A (Avaliação): Análise do profissional (possível diagnóstico).
+  - P (Plano): Conduta (prescrições, encaminhamentos, atestados, exames).
 - Incluir gravidade e recomendações básicas
 - Endpoint: `POST /api/relatos/explicar`
 - Salvar explicação vinculada ao caso
 
 ### Fase 5 — Interface e Dashboard
 
-- Tela de entrada: formulário de texto + upload de áudio (pode enviar um arquivo de áudio ou gravar na hora)
+- Tela inicial com ações rápidas e resumo de quantidade de relatos, relatos processados, relatos que deram erro e casos recentes
+- Entrada de caso: texto ou upload de áudio (pode enviar um arquivo de áudio ou gravar na hora)
 - Tela de visualização do caso individual:
   - Relato original
   - Dados estruturados
-    - Sintomas médicos
-    - Termos indígenas e explicação do que eles significam naquele contexto
-    - Data/hora do caso
   - Explicação médica
 - Dashboard básico:
   - Total de casos registrados
   - Sintomas mais frequentes
-  - Lista de casos recentes com filtros (data, sintoma)
+  - Categorias
+  - Linha temporal
 
 ### Fase 6 — Testes e Validação
 
@@ -265,73 +383,3 @@ medical_explanations (
   created_at
 )
 ```
-
-## Como Executar
-
-### Pré-requisitos
-
-- Python 3.8+
-- Node.js 16+ (para o frontend - Fase 5)
-
-### 1. Testar RAG (Fase 1) - Linha de comando
-
-```bash
-# Navegar para o backend
-cd backend
-
-# Instalar dependências
-pip install -r requirements.txt
-
-# Configurar .env com GOOGLE_API_KEY
-cp ../.env.example ../.env
-
-# Adicionar arquivo Saude_Yanomami.pdf na pasta data/
-# Copiar: data/Saude_Yanomami.pdf
-
-# Executar teste do RAG
-python rag/rag_pipeline.py
-```
-
-### 2. API FastAPI (Fase 2) - Endpoints de entrada de dados
-
-```bash
-# Navegar para o backend (se ainda não estiver)
-cd backend
-
-# Instalar dependências (se ainda não instalou)
-pip install -r requirements.txt
-
-# Configurar .env (se ainda não configurou)
-cp ../.env.example ../.env
-
-# Executar servidor FastAPI
-python main.py
-# OU
-uvicorn main:app --reload
-
-# Servidor disponível em: http://localhost:8000
-# Documentação Swagger: http://localhost:8000/docs
-```
-
-#### Testando os endpoints no Swagger
-
-1. Acesse `http://localhost:8000/docs`
-2. Teste o endpoint `POST /api/relatos/texto`:
-
-   - Clique em "Try it out"
-   - Insira um relato de exemplo:
-     ```json
-     {
-       "relato": "Estou com dor de cabeça forte há 3 dias e febre à noite"
-     }
-     ```
-   - Clique em "Execute"
-
-3. Teste o endpoint `POST /api/relatos/audio`:
-
-   - Clique em "Try it out"
-   - Faça upload de um arquivo de áudio (mp3, wav, m4a)
-   - Clique em "Execute"
-   - O áudio será transcrito automaticamente usando Gemini
-
-4. Liste os relatos com `GET /api/relatos`
