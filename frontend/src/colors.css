@@ -1,0 +1,19 @@
+/* Aldeia Saúde Color Scheme */
+:root {
+  /* Primary brand colors */
+  --aldeia-primary: #8da490;
+  --aldeia-secondary: #7a9a7f;
+  --aldeia-light: #a3b5a6;
+
+  /* Additional complementary colors for future use */
+  --aldeia-accent: #4fb3d9; /* The blue from the logo */
+  --aldeia-dark: #6b8470;
+  --aldeia-muted: #b8c5bb;
+}
+
+/* Color usage examples:
+ * Primary: Main buttons, key UI elements, backgrounds
+ * Secondary: Hover states, secondary actions
+ * Light: Subtle backgrounds, borders
+ * Accent: Highlights, icons, call-to-action elements
+ */

@@ -10,7 +10,7 @@ from ..services.structure_service import StructureService
 logger = logging.getLogger(__name__)
 
 
-async def structure_case_task(case_id: int):
+def structure_case_task(case_id: int):
     """
     Processa estruturação de dados para um caso em background
 

@@ -17,6 +17,20 @@ class RelatoTextoRequest(BaseModel):
         }
 
 
+class CaseUpdateRequest(BaseModel):
+    """Schema para atualização de um caso"""
+    relato_original: Optional[str] = None
+    status: Optional[str] = None
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "relato_original": "Estou com dor de cabeça forte há 3 dias e febre à noite. Atualização: a dor diminuiu.",
+                "status": "completo"
+            }
+        }
+
+
 class CaseResponse(BaseModel):
     """Schema de resposta para um caso criado"""
     case_id: int

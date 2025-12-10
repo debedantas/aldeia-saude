@@ -127,3 +127,33 @@ class CaseRepository:
                     case.error_message = error_message
                 return True
             return False
+
+    def update(
+        self,
+        case_id: int,
+        relato_original: Optional[str] = None,
+        status: Optional[str] = None
+    ) -> Optional[dict]:
+        """
+        Atualiza os dados de um caso
+
+        Args:
+            case_id: ID do caso
+            relato_original: Novo texto do relato (opcional)
+            status: Novo status (opcional)
+
+        Returns:
+            Dicionário com dados do caso atualizado ou None se não encontrado
+        """
+        with self._get_session() as session:
+            case = session.query(Case).filter(Case.id == case_id).first()
+            if not case:
+                return None
+            
+            if relato_original is not None:
+                case.relato_original = relato_original
+            if status is not None:
+                case.status = status
+            
+            session.flush()
+            return case.to_dict()

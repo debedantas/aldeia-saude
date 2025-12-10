@@ -22,10 +22,11 @@ app = FastAPI(
 )
 
 # Configurar CORS para permitir requisições do frontend React
+# Como não estamos usando credenciais/cookies, podemos liberar origem *
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especificar domínios permitidos
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

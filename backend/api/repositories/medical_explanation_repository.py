@@ -47,7 +47,15 @@ class MedicalExplanationRepository:
         with self._get_session() as session:
             explanation = session.query(MedicalExplanation).filter(
                 MedicalExplanation.case_id == case_id
-            ).first()
+            ).order_by(MedicalExplanation.created_at.desc()).first()
+            return explanation.to_dict() if explanation else None
+
+    def find_latest_by_case_id(self, case_id: int) -> Optional[dict]:
+        """Busca a explicação mais recente por ID do caso"""
+        with self._get_session() as session:
+            explanation = session.query(MedicalExplanation).filter(
+                MedicalExplanation.case_id == case_id
+            ).order_by(MedicalExplanation.created_at.desc()).first()
             return explanation.to_dict() if explanation else None
 
     def find_all(self, limit: int = 50) -> List[dict]:

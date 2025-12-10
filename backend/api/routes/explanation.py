@@ -1,7 +1,7 @@
 """
 Rota para geração de explicações médicas
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from ..repositories import CaseRepository
 from ..repositories.structured_data_repository import StructuredDataRepository
@@ -11,8 +11,41 @@ from ..services.explanation_service import ExplanationService
 router = APIRouter(prefix="/api/relatos", tags=["Explicações"])
 
 
+@router.get("/{case_id}/explicacao")
+def obter_ultima_explicacao(case_id: int):
+    """
+    Retorna a explicação médica mais recente de um caso
+
+    - **case_id**: ID do caso
+    """
+    try:
+        case_repo = CaseRepository()
+        case = case_repo.find_by_id(case_id)
+
+        if not case:
+            raise HTTPException(status_code=404, detail="Caso não encontrado")
+
+        explanation_repo = MedicalExplanationRepository()
+        explanation = explanation_repo.find_latest_by_case_id(case_id)
+
+        if not explanation:
+            raise HTTPException(status_code=404, detail="Nenhuma explicação encontrada para este caso")
+
+        return {
+            "message": "Explicação encontrada",
+            "explanation": explanation
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao buscar explicação: {str(e)}"
+        )
+
+
 @router.post("/{case_id}/explicar")
-def gerar_explicacao_medica(case_id: int):
+def gerar_explicacao_medica(case_id: int, force: bool = Query(default=False)):
     """
     Gera explicação médica para um caso com dados estruturados
 
@@ -40,9 +73,9 @@ def gerar_explicacao_medica(case_id: int):
         
         # Verificar se já tem explicação
         explanation_repo = MedicalExplanationRepository()
-        existing_explanation = explanation_repo.find_by_case_id(case_id)
+        existing_explanation = explanation_repo.find_latest_by_case_id(case_id)
         
-        if existing_explanation:
+        if existing_explanation and not force:
             return {
                 "message": "Explicação já existe para este caso",
                 "explanation": existing_explanation
